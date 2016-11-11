@@ -43,47 +43,47 @@ export default function (babel) {
 			}
 		}
 	};
-}
 
-function getRequire( deps, params ) {
-	return params.map( ( param, i ) => {
-		if ( deps[i] ) {
-			return buildRequire( param, deps[i] );
-		} else {
-			return buildEmptyObjectAssignment( param );
-		}
-	} );
-}
+	function getRequire( deps, params ) {
+		return params.map( ( param, i ) => {
+			if ( deps[i] ) {
+				return buildRequire( param, deps[i] );
+			} else {
+				return buildEmptyObjectAssignment( param );
+			}
+		} );
+	}
 
-function buildRequire( variableName, dep ) {
-	return t.VariableDeclaration(
-		'var',
-		[
-			t.VariableDeclarator(
-				t.Identifier( variableName ),
-				t.CallExpression(
-					t.Identifier('require'),
-					[
-						t.StringLiteral( dep )
-					]
+	function buildRequire( variableName, dep ) {
+		return t.VariableDeclaration(
+			'var',
+			[
+				t.VariableDeclarator(
+					t.Identifier( variableName ),
+					t.CallExpression(
+						t.Identifier('require'),
+						[
+							t.StringLiteral( dep )
+						]
+					)
 				)
-			)
-		]
-	);
-}
+			]
+		);
+	}
 
-function buildEmptyObjectAssignment( variableName ) {
-	return t.VariableDeclaration(
-		'var',
-		[
-			t.VariableDeclarator(
-				t.Identifier( variableName ),
-				t.ObjectExpression([])
-			)
-		]
-	);
-}
+	function buildEmptyObjectAssignment( variableName ) {
+		return t.VariableDeclaration(
+			'var',
+			[
+				t.VariableDeclarator(
+					t.Identifier( variableName ),
+					t.ObjectExpression([])
+				)
+			]
+		);
+	}
 
-function buildAssignment(left, right) {
-	return t.assignmentExpression("=", left, right);
+	function buildAssignment(left, right) {
+		return t.assignmentExpression("=", left, right);
+	}
 }
