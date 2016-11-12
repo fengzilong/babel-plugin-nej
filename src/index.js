@@ -2,17 +2,26 @@ export default function (babel) {
 	const { types: t } = babel;
 
 	return {
-		name: "nej",
+		name: 'nej',
 		visitor: {
 			CallExpression(path) {
 				const callee = path.node.callee;
 				const args = path.node.arguments;
 				if (
-					callee.name === 'define' &&
+					(
+						callee.name === 'define' ||
+						(
+							callee.type === 'MemberExpression' &&
+							callee.object.type === 'Identifier' &&
+							callee.object.name === 'NEJ' &&
+							callee.property.type === 'Identifier' &&
+							callee.property.name === 'define'
+						)
+					) &&
 					args.length === 2 &&
 					args &&
-					args[0].type === 'ArrayExpression' &&
-					args[1].type === 'FunctionExpression'
+					args[ 0 ].type === 'ArrayExpression' &&
+					args[ 1 ].type === 'FunctionExpression'
 				) {
 					const deps = args[ 0 ].elements.map( element => element.value );
 					const fn = args[ 1 ];
@@ -26,7 +35,7 @@ export default function (babel) {
 					program.node.body = program.node.body.map( v => {
 						if ( v.type !== 'ReturnStatement' ) {
 							return v;
-						} else if( !returned ) {
+						} else if ( !returned ) {
 							returned = true;
 							return t.ExpressionStatement(
 								buildAssignment(
@@ -46,15 +55,28 @@ export default function (babel) {
 
 	function getRequire( deps, params ) {
 		return params.map( ( param, i ) => {
-			if ( deps[i] ) {
-				return buildRequire( param, deps[i] );
+			if ( deps[ i ] ) {
+				var dep = transformBrace( deps[ i ] );
+				return buildRequireAssignment( param, dep );
 			} else {
 				return buildEmptyObjectAssignment( param );
 			}
 		} );
 	}
 
-	function buildRequire( variableName, dep ) {
+	// '{pro}file.js' -> 'pro/file.js'
+	// '{platform}/file.js' -> './platform/file.js'
+	function transformBrace( str ) {
+		return str.replace( /\{(.+)\}\/?/, function( _, name ) {
+			if ( name === 'platform' ) {
+				return './platform/';
+			} else {
+				return name + '/';
+			}
+		} );
+	}
+
+	function buildRequireAssignment( variableName, dep ) {
 		return t.VariableDeclaration(
 			'var',
 			[
