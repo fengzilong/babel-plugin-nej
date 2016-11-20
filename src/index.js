@@ -1,4 +1,4 @@
-export default function (babel) {
+export default function ( babel ) {
 	const { types: t } = babel;
 
 	return {
@@ -9,7 +9,9 @@ export default function (babel) {
 				const args = path.node.arguments;
 				if (
 					(
+						// define
 						callee.name === 'define' ||
+						// NEJ.define
 						(
 							callee.type === 'MemberExpression' &&
 							callee.object.type === 'Identifier' &&
@@ -29,7 +31,7 @@ export default function (babel) {
 					const program = path.findParent( path => path.isProgram() );
 
 					program.node.body = fn.body.body;
-					[].unshift.apply( program.node.body, getRequire( deps, params ) );
+					[].unshift.apply( program.node.body, getRequire( deps, params, this ) );
 
 					let returned = false;
 					program.node.body = program.node.body.map( v => {
@@ -53,15 +55,28 @@ export default function (babel) {
 		}
 	};
 
-	function getRequire( deps, params ) {
-		return params.map( ( param, i ) => {
-			if ( deps[ i ] ) {
-				var dep = transformBrace( deps[ i ] );
-				return buildRequireAssignment( param, dep );
-			} else {
+	function getRequire( deps, params, context ) {
+		let hit = false;
+
+		const result = params.map( ( param, i ) => {
+			if ( ~deps[ i ].indexOf( 'regularjs/dist/regular' ) ) {
+				hit = true;
 				return buildEmptyObjectAssignment( param );
 			}
+
+			if ( deps[ i ] ) {
+				var dep = transformBrace( deps[ i ] );
+				return buildRequireAssignment( param, dep, context );
+			}
+
+			return buildEmptyObjectAssignment( param );
 		} );
+
+		if ( hit ) {
+			result.unshift( buildRequireAssignment( 'Regular', 'regularjs', context ) );
+		}
+
+		return result;
 	}
 
 	// '{pro}file.js' -> 'pro/file.js'
@@ -76,18 +91,26 @@ export default function (babel) {
 		} );
 	}
 
-	function buildRequireAssignment( variableName, dep ) {
+	function buildRequireAssignment( variableName, dep, context ) {
 		return t.VariableDeclaration(
 			'var',
 			[
 				t.VariableDeclarator(
 					t.Identifier( variableName ),
-					t.CallExpression(
-						t.Identifier('require'),
-						[
-							t.StringLiteral( dep )
-						]
-					)
+					t.memberExpression(
+						t.CallExpression(
+							context.addHelper( 'interopRequireDefault' ),
+							[
+								t.CallExpression(
+									t.Identifier('require'),
+									[
+										t.StringLiteral( dep )
+									]
+								)
+							]
+						),
+						t.identifier( 'default' )
+					),
 				)
 			]
 		);
@@ -99,13 +122,13 @@ export default function (babel) {
 			[
 				t.VariableDeclarator(
 					t.Identifier( variableName ),
-					t.ObjectExpression([])
+					t.ObjectExpression( [] ),
 				)
 			]
 		);
 	}
 
-	function buildAssignment(left, right) {
-		return t.assignmentExpression("=", left, right);
+	function buildAssignment( left, right ) {
+		return t.assignmentExpression( '=', left, right );
 	}
 }
