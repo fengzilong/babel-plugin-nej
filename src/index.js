@@ -56,11 +56,8 @@ export default function ( babel ) {
 	};
 
 	function getRequire( deps, params, context ) {
-		let hit = false;
-
 		const result = params.map( ( param, i ) => {
 			if ( ~deps[ i ].indexOf( 'regularjs/dist/regular' ) ) {
-				hit = true;
 				return buildEmptyObjectAssignment( param );
 			}
 
@@ -72,6 +69,15 @@ export default function ( babel ) {
 			return buildEmptyObjectAssignment( param );
 		} );
 
+		let hit = false;
+		deps.some( dep => {
+			if ( ~dep.indexOf( 'regularjs/dist/regular' ) ) {
+				hit = true;
+				return true;
+			}
+		} );
+
+		// if hit, prepend `var Regular = require( 'regularjs' )`
 		if ( hit ) {
 			result.unshift( buildRequireAssignment( 'Regular', 'regularjs', context ) );
 		}

@@ -6,6 +6,10 @@
   "scripts": {
     "dist": "babel src --out-dir lib"
   },
+  "files": [
+    "src",
+    "lib"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fengzilong/babel-plugin-nej.git"

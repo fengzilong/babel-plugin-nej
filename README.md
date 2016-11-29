@@ -1,2 +1,3 @@
 # babel-plugin-nej
-convert nej syntax to commonjs
+
+> transform nej syntax to commonjs
