@@ -62,7 +62,7 @@ export default function ( babel ) {
 			}
 
 			if ( deps[ i ] ) {
-				var dep = transformBrace( deps[ i ] );
+				var dep = transformDep( deps[ i ] );
 				return buildRequireAssignment( param, dep, context );
 			}
 
@@ -87,14 +87,14 @@ export default function ( babel ) {
 
 	// '{pro}file.js' -> 'pro/file.js'
 	// '{platform}/file.js' -> './platform/file.js'
-	function transformBrace( str ) {
+	function transformDep( str ) {
 		return str.replace( /\{(.+)\}\/?/, function( _, name ) {
 			if ( name === 'platform' ) {
 				return './platform/';
 			} else {
 				return name + '/';
 			}
-		} );
+		} ).replace( /^text!/, '!!text!' );
 	}
 
 	function buildRequireAssignment( variableName, dep, context ) {
